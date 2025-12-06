@@ -2,16 +2,15 @@ import type { CollectionConfig } from 'payload'
 
 import { authenticated } from '../../access/authenticated'
 import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
+
 import { Archive } from '../../blocks/ArchiveBlock/config'
 import { CallToAction } from '../../blocks/CallToAction/config'
 import { Content } from '../../blocks/Content/config'
 import { FormBlock } from '../../blocks/Form/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
+
 import { hero } from '@/heros/config'
 import { slugField } from 'payload'
-import { populatePublishedAt } from '../../hooks/populatePublishedAt'
-import { generatePreviewPath } from '../../utilities/generatePreviewPath'
-import { revalidateDelete, revalidatePage } from './hooks/revalidatePage'
 
 import {
   MetaDescriptionField,
@@ -21,7 +20,50 @@ import {
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
 
-export const Pages: CollectionConfig<'pages'> = {
+import { generatePreviewPath } from '../../utilities/generatePreviewPath'
+import type { CollectionSlug } from '../../utilities/generatePreviewPath' // ✅ import the type
+
+type PageDoc = {
+  slug?: string
+  updatedAt?: string
+  publishedAt?: string
+  [key: string]: unknown
+}
+
+const populatePublishedAt = async ({ data }: { data: PageDoc }) => {
+  if (!data.publishedAt && data.updatedAt) {
+    data.publishedAt = data.updatedAt
+  }
+  return data
+}
+
+const revalidatePage = async ({ doc }: { doc: PageDoc }) => {
+  try {
+    if (typeof fetch !== 'undefined') {
+      await fetch(
+        `${process.env.PAYLOAD_PUBLIC_SERVER_URL}/api/revalidate?page=${doc.slug ?? ''}`,
+        { method: 'POST' },
+      )
+    }
+  } catch (e) {
+    console.error('Failed to revalidate page', e)
+  }
+}
+
+const revalidateDelete = async ({ doc }: { doc: PageDoc }) => {
+  try {
+    if (typeof fetch !== 'undefined') {
+      await fetch(
+        `${process.env.PAYLOAD_PUBLIC_SERVER_URL}/api/revalidate?page=${doc.slug ?? ''}`,
+        { method: 'POST' },
+      )
+    }
+  } catch (e) {
+    console.error('Failed to revalidate page delete', e)
+  }
+}
+
+export const Pages: CollectionConfig = {
   slug: 'pages',
   access: {
     create: authenticated,
@@ -29,9 +71,6 @@ export const Pages: CollectionConfig<'pages'> = {
     read: authenticatedOrPublished,
     update: authenticated,
   },
-  // This config controls what's populated by default when a page is referenced
-  // https://payloadcms.com/docs/queries/select#defaultpopulate-collection-config-property
-  // Type safe if the collection slug generic is passed to `CollectionConfig` - `CollectionConfig<'pages'>
   defaultPopulate: {
     title: true,
     slug: true,
@@ -42,16 +81,17 @@ export const Pages: CollectionConfig<'pages'> = {
       url: ({ data, req }) =>
         generatePreviewPath({
           slug: data?.slug,
-          collection: 'pages',
+          collection: 'pages' as CollectionSlug, // ✅ cast safely
           req,
         }),
     },
     preview: (data, { req }) =>
       generatePreviewPath({
-        slug: data?.slug as string,
-        collection: 'pages',
+        slug: typeof data?.slug === 'string' ? data.slug : '',
+        collection: 'pages' as CollectionSlug,
         req,
       }),
+
     useAsTitle: 'title',
   },
   fields: [
@@ -90,19 +130,11 @@ export const Pages: CollectionConfig<'pages'> = {
               descriptionPath: 'meta.description',
               imagePath: 'meta.image',
             }),
-            MetaTitleField({
-              hasGenerateFn: true,
-            }),
-            MetaImageField({
-              relationTo: 'media',
-            }),
-
+            MetaTitleField({ hasGenerateFn: true }),
+            MetaImageField({ relationTo: 'media' }),
             MetaDescriptionField({}),
             PreviewField({
-              // if the `generateUrl` function is configured
               hasGenerateFn: true,
-
-              // field paths to match the target field for data
               titlePath: 'meta.title',
               descriptionPath: 'meta.description',
             }),
@@ -120,14 +152,14 @@ export const Pages: CollectionConfig<'pages'> = {
     slugField(),
   ],
   hooks: {
-    afterChange: [revalidatePage],
     beforeChange: [populatePublishedAt],
+    afterChange: [revalidatePage],
     afterDelete: [revalidateDelete],
   },
   versions: {
     drafts: {
       autosave: {
-        interval: 100, // We set this interval for optimal live preview
+        interval: 100,
       },
       schedulePublish: true,
     },

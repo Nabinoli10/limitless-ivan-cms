@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, CollectionSlug } from 'payload'
 
 import {
   BlocksFeature,
@@ -9,15 +9,22 @@ import {
   lexicalEditor,
 } from '@payloadcms/richtext-lexical'
 
+// ACCESS
 import { authenticated } from '../../access/authenticated'
 import { authenticatedOrPublished } from '../../access/authenticatedOrPublished'
+
+// BLOCKS
 import { Banner } from '../../blocks/Banner/config'
 import { Code } from '../../blocks/Code/config'
 import { MediaBlock } from '../../blocks/MediaBlock/config'
-import { generatePreviewPath } from '../../utilities/generatePreviewPath'
+
 import { populateAuthors } from './hooks/populateAuthors'
 import { revalidateDelete, revalidatePost } from './hooks/revalidatePost'
 
+// PREVIEW
+import { generatePreviewPath } from '../../utilities/generatePreviewPath'
+
+// SEO FIELDS
 import {
   MetaDescriptionField,
   MetaImageField,
@@ -25,6 +32,7 @@ import {
   OverviewField,
   PreviewField,
 } from '@payloadcms/plugin-seo/fields'
+
 import { slugField } from 'payload'
 
 export const Posts: CollectionConfig = {
@@ -52,17 +60,18 @@ export const Posts: CollectionConfig = {
     livePreview: {
       url: ({ data, req }) =>
         generatePreviewPath({
-          slug: data?.slug,
-          collection: 'posts' as never,
+          slug: typeof data?.slug === 'string' ? data.slug : '',
+          collection: 'posts' as import('../../utilities/generatePreviewPath').CollectionSlug,
           req,
         }),
     },
     preview: (data, { req }) =>
       generatePreviewPath({
-        slug: data?.slug as string,
-        collection: 'posts' as never,
+        slug: typeof data?.slug === 'string' ? data.slug : '',
+        collection: 'posts' as import('../../utilities/generatePreviewPath').CollectionSlug,
         req,
       }),
+
     useAsTitle: 'title',
   },
 
@@ -72,6 +81,7 @@ export const Posts: CollectionConfig = {
       type: 'text',
       required: true,
     },
+
     {
       type: 'tabs',
       tabs: [
@@ -89,18 +99,20 @@ export const Posts: CollectionConfig = {
               editor: lexicalEditor({
                 features: ({ rootFeatures }) => [
                   ...rootFeatures,
-                  HeadingFeature({ enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'] }),
+                  HeadingFeature({
+                    enabledHeadingSizes: ['h1', 'h2', 'h3', 'h4'],
+                  }),
                   BlocksFeature({ blocks: [Banner, Code, MediaBlock] }),
                   FixedToolbarFeature(),
                   InlineToolbarFeature(),
                   HorizontalRuleFeature(),
                 ],
               }),
-              label: false,
               required: true,
             },
           ],
         },
+
         {
           label: 'Meta',
           fields: [
@@ -108,21 +120,25 @@ export const Posts: CollectionConfig = {
               name: 'relatedPosts',
               type: 'relationship',
               admin: { position: 'sidebar' },
+              hasMany: true,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              relationTo: ['categories'] as any,
+
               filterOptions: ({ id }) => ({
                 id: { not_in: [id] },
               }),
-              hasMany: true,
-              relationTo: 'posts' as never,
             },
             {
               name: 'categories',
               type: 'relationship',
               admin: { position: 'sidebar' },
               hasMany: true,
-              relationTo: 'categories' as never,
+              relationTo: 'categories' as CollectionSlug,
+              // ✅ fix: array of slugs
             },
           ],
         },
+
         {
           name: 'meta',
           label: 'SEO',
@@ -144,6 +160,7 @@ export const Posts: CollectionConfig = {
         },
       ],
     },
+
     {
       name: 'publishedAt',
       type: 'date',
@@ -162,6 +179,7 @@ export const Posts: CollectionConfig = {
         ],
       },
     },
+
     {
       name: 'authors',
       type: 'relationship',
@@ -169,6 +187,7 @@ export const Posts: CollectionConfig = {
       hasMany: true,
       relationTo: 'users',
     },
+
     {
       name: 'populatedAuthors',
       type: 'array',
@@ -179,6 +198,7 @@ export const Posts: CollectionConfig = {
         { name: 'name', type: 'text' },
       ],
     },
+
     slugField(),
   ],
 
