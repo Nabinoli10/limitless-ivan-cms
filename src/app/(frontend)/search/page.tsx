@@ -8,7 +8,7 @@ import { CardPostData } from '@/components/Card'
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
-export default async function Page({ searchParams }: { searchParams?: { q?: string } }) {
+export default async function Page({ searchParams }: any) {
   const query = searchParams?.q || ''
   const payload = await getPayload({ config: configPromise })
 
@@ -19,7 +19,6 @@ export default async function Page({ searchParams }: { searchParams?: { q?: stri
 
   try {
     const result = await payload.find({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: 'posts' as any,
       depth: 1,
       limit: 12,
@@ -43,7 +42,7 @@ export default async function Page({ searchParams }: { searchParams?: { q?: stri
     })
 
     posts = {
-      docs: result.docs as CardPostData[],
+      docs: result.docs as unknown as CardPostData[],
       totalDocs: result.totalDocs ?? result.docs.length,
     }
   } catch (err) {
@@ -72,7 +71,5 @@ export default async function Page({ searchParams }: { searchParams?: { q?: stri
 }
 
 export function generateMetadata(): Metadata {
-  return {
-    title: 'Search Results',
-  }
+  return { title: 'Search Results' }
 }
