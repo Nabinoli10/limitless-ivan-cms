@@ -1,5 +1,8 @@
-import PageTemplate, { generateMetadata } from './[slug]/page'
+export default function HomePage() {
+  return <div></div>
+}
 
-export default PageTemplate
-
-export { generateMetadata }
+// No generateMetadata anymore
+export const generateMetadata = () => ({
+  title: 'Limitless Ivan',
+})
