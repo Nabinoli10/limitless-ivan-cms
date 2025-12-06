@@ -19,3 +19,8 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Ignore video files
+media/*.mp4
+public/*.mp4
+*.mp4
