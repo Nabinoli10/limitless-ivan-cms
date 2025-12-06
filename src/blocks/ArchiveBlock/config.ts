@@ -64,8 +64,9 @@ export const Archive: Block = {
       },
       hasMany: true,
       label: 'Categories To Show',
-      relationTo: 'categories',
+      relationTo: 'categories' as any, // <-- FIXED
     },
+
     {
       name: 'limit',
       type: 'number',
